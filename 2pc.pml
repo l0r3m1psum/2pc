@@ -92,7 +92,7 @@
 
 /* compile and run: spin -a 2pc.pml && cc -O2 -DNXT -o pan pan.c && pan -a -N AC1
  * debug: pan -r 2pc.pml.trail
- * clean: rm _spin_nvr.tmp pan*
+ * clean: rm _spin_nvr.tmp pan* *.trail
  * documentation: https://spinroot.com/spin/Man/
  */
 

@@ -144,6 +144,7 @@ active [N] proctype partecipant() {
 		INC(decidedToCommit);
 		printf("partecipant %d committed\n", _pid)
 	:: channel[_pid]?DECISION(ABORT) ->
+		assert(votedYes < N);
 		INC(decidedToAbort);
 		printf("partecipant %d aborted\n", _pid)
 	fi
@@ -172,6 +173,7 @@ active proctype coordinator() {
 	if
 	:: 0 ->
 abort:
+		assert(votedYes < N);
 		for (i : 0 .. N-1) {
 			channel[i]!DECISION(ABORT)
 		};

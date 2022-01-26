@@ -85,9 +85,7 @@
  * all processes will eventually reach a decision.
  */
 
-/* NOTE: The cooperative termination is implementent in a simplified way because
- * the actual implementation is too complex and doesn't guarantee termination.
- * In this case only the coodinator is the only process to which help is asked.
+/* NOTE: The cooperative termination was not implementd because I'm not able to.
  */
 
 /* compile and run: spin -a 2pc.pml && cc -O2 -DNXT -o pan pan.c && pan -a -N AC1
@@ -115,9 +113,8 @@
 #define INC(X) d_step {old_ ## X = X; X++}
 #define IS_INC(X) (old_ ## X <= X)
 
-mtype = {VOTE_REQ, VOTE, DECISION_REQ, DECISION};
+mtype = {VOTE_REQ, VOTE, DECISION};
 chan channel[N] = [1] of {mtype, bit};
-chan help = [0] of {mtype, bit};
 
 /* This counters are used to keep track of what the partecipants do, not the
  * coordinator.
@@ -140,9 +137,6 @@ active [N] proctype partecipant() {
 		printf("partecipant %d voted YES\n", _pid)
 	:: atomic {channel[_pid]!VOTE(NO); votedNo++} ->
 		printf("partecipant %d voted NO\n", _pid)
-	:: skip ->
-		/*probabilmente qua comunque devono votare*/
-		printf("partecipant %d timed out\n", _pid)
 	fi;
 	if
 	:: channel[_pid]?DECISION(COMMIT) ->
@@ -152,23 +146,12 @@ active [N] proctype partecipant() {
 	:: channel[_pid]?DECISION(ABORT) ->
 		INC(decidedToAbort);
 		printf("partecipant %d aborted\n", _pid)
-	:: timeout -> /* cooperative termination */
-/* askAgain: */
-		printf("partecipant %d is asking for help\n", _pid);
-		help!DECISION_REQ(DONT_CARE);
-		if
-		:: help?DECISION(COMMIT) -> INC(decidedToCommit);
-		:: help?DECISION(ABORT) -> INC(decidedToAbort)
-		/*:: timeout -> printf("partecipant %d is asking again\n", _pid); goto askAgain
-		removed because could cause an infinite loop */
-		fi
 	fi
 end:
 }
 
 active proctype coordinator() {
 	int i;
-	bit decision;
 	for (i : 0 .. N-1) {
 		if
 		:: channel[i]!VOTE_REQ(DONT_CARE)
@@ -179,36 +162,21 @@ active proctype coordinator() {
 		if
 		:: channel[i]?VOTE(YES) -> skip
 		:: channel[i]?VOTE(NO) -> goto abort
-		:: timeout -> goto abort
 		fi
 	};
 	assert(votedYes == N);
 	for (i : 0 .. N-1) {
-		if
-		:: channel[i]!DECISION(COMMIT)
-		:: skip /* will triggers cooperative termination */
-		fi
+		channel[i]!DECISION(COMMIT)
 	};
-	decision = COMMIT;
 	printf("coordinator committed\n");
 	if
 	:: 0 ->
 abort:
 		for (i : 0 .. N-1) {
-			if
-			:: channel[i]!DECISION(ABORT)
-			:: skip /* will triggers cooperative termination */
-			fi
+			channel[i]!DECISION(ABORT)
 		};
-		decision = ABORT;
 		printf("coordinator aborted\n")
 	fi;
-end:
-	do
-	:: nempty(help) ->
-		help?DECISION_REQ(DONT_CARE);
-		help!DECISION(decision)
-	od;
 }
 
 /* Which properties are for safety and which ones are for liveness? */

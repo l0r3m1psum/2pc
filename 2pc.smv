@@ -1,0 +1,110 @@
+-- NOTE: just a single partecipant is implemented because the simplicity of the
+-- language didn't allow me to do much more. Also cooperative termination is not
+-- implemented as well.
+
+-- run: nusmv 2pcm.smv | sed '1,16d'
+
+MODULE main
+	VAR
+		channel : {empty, vote_req, yes, no, commit, abort};
+		coordinator : process coordinator_process(channel);
+		partecipant : process partecipant_process(channel);
+	ASSIGN
+		init(channel) := empty;
+	-- Sanity checks
+	SPEC NAME termination :=
+		AF (coordinator.state = final & partecipant.state = final)
+	SPEC NAME can_commit :=
+		EF coordinator.state = decided_to_commit
+		& EF partecipant.state = decided_to_commit
+	SPEC NAME can_abort :=
+		EF coordinator.state = decided_to_abort
+		& EF partecipant.state = decided_to_abort
+	-- 2 pahse commit properties
+	SPEC NAME AC1 :=
+		AG (coordinator.state = decided_to_commit
+			-> AF partecipant.state = decided_to_commit)
+		-- This three are false for some reason...
+		-- &
+		-- AG (coordinator.state = decided_to_abort
+		-- 	-> AF partecipant.state = decided_to_abort)
+		-- &
+		-- AG (partecipant.state = decided_to_commit
+		-- 	-> AF coordinator.state = decided_to_commit)
+		-- &
+		-- AG (partecipant.state = decided_to_abort
+		-- 	-> AF coordinator.state = decided_to_abort)
+	SPEC NAME AC2 :=
+		(AG coordinator.state = decided_to_commit
+			-> AG coordinator.state != decided_to_abort)
+		&
+		(AG coordinator.state = decided_to_abort
+			-> AG coordinator.state != decided_to_commit)
+		&
+		(AG partecipant.state = decided_to_commit
+			-> AG partecipant.state != decided_to_abort)
+		&
+		(AG partecipant.state = decided_to_abort
+			-> AG partecipant.state != decided_to_commit)
+	LTLSPEC NAME AC3 :=
+		G (partecipant.state = decided_to_commit
+			-> O partecipant.state = voted_yes)
+	SPEC NAME AC4 :=
+		AF (partecipant.state = voted_yes
+			-> EF coordinator.state = decided_to_commit
+			& EF partecipant.state = decided_to_commit)
+	SPEC NAME AC5 :=
+		AF coordinator.state in {decided_to_commit, decided_to_abort}
+		& AF partecipant.state in {decided_to_commit, decided_to_abort}
+
+MODULE coordinator_process(chan)
+	VAR
+		state : {initial, waiting_for_votes, decided_to_commit,
+			decided_to_abort, final};
+	ASSIGN
+		init(state) := initial;
+		next(state) :=
+			case
+				state = initial                          : waiting_for_votes;
+				-- the following simulates a timeout
+				state = waiting_for_votes & chan = empty : decided_to_abort;
+				state = waiting_for_votes & chan = yes   : decided_to_commit;
+				state = waiting_for_votes & chan = no    : decided_to_abort;
+				state = decided_to_commit                : final;
+				state = decided_to_abort                 : final;
+				TRUE : state;
+			esac;
+		next(chan) :=
+			case
+				state = initial           : vote_req;
+				state = decided_to_commit : commit;
+				state = decided_to_abort  : abort;
+				TRUE                      : chan;
+			esac;
+	JUSTICE
+		running
+
+MODULE partecipant_process(chan)
+	VAR
+		state : {initial, voted_yes, voted_no, decided_to_commit,
+			decided_to_abort, final};
+	ASSIGN
+		init(state) := initial;
+		next(state) :=
+			case
+				state = initial & chan = vote_req : {voted_yes, voted_no};
+				state = voted_yes & chan = commit : decided_to_commit;
+				state = voted_yes & chan = abort  : decided_to_abort;
+				state = voted_no                  : decided_to_abort;
+				state = decided_to_commit         : final;
+				state = decided_to_abort          : final;
+				TRUE : state;
+			esac;
+		next(chan) :=
+			case
+				state = voted_yes : yes;
+				state = voted_no : no;
+				TRUE : chan;
+			esac;
+	JUSTICE
+		running

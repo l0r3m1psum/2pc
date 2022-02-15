@@ -98,7 +98,7 @@ abort:
 
 ltl AC1 {
 	[]((decidedToCommit > 0 -> decidedToAbort == 0)
-		|| (decidedToAbort > 0 -> decidedToCommit == 0))
+		&& (decidedToAbort > 0 -> decidedToCommit == 0))
 }
 
 /* NOTE: X requires -DNXT

@@ -1,0 +1,163 @@
+\documentclass[landscape]{slides}
+\usepackage{lscape}
+
+\newcommand{\slidetitle}{}
+\newcommand{\settitle}[1]{\renewcommand{\slidetitle}{#1}}
+
+\makeatletter
+\LARGE
+% To avoid warnings from the font of \slidetitle beeing too big
+\setlength{\headheight}{\f@size pt}
+\def\ps@mystyle{%
+	\def\ps@slide{%
+		\def\@oddhead{\hrulefill{\LARGE\centering\slidetitle}\hrulefill}%
+		\def\@oddfoot{\@mainsize \mbox{}\hfil\hb@xt@3em{\theslide\hss}}%
+		\def\@evenhead{\@oddhead}%
+		\def\@evenfoot{\@oddfoot}%
+	}%
+	\def\ps@overlay{%
+		\def\@oddhead{}%
+		\def\@oddfoot{\@mainsize \mbox{}\hfil\hb@xt@3em{\theoverlay\hss}}%
+		\def\@evenhead{\@oddhead}%
+		\def\@evenfoot{\@oddfoot}%
+	}%
+	\def\ps@note{%
+		\def\@oddhead{}%
+		\def\@oddfoot{\@mainsize \hfil\thenote}%
+		\def\@evenhead{\@oddhead}%
+		\def\@evenfoot{\@oddfoot}%
+	}%
+}
+\makeatother
+\pagestyle{mystyle}
+
+\title{Model Checking Two Phase Commit}
+\author{Diego Bellani}
+\date{2022}
+\setlength{\unitlength}{1cm}
+
+\begin{document}
+
+\maketitle
+
+\begin{slide}
+\settitle{The Problem}
+In distributed transaction systems it is necassary to ensure \emph{consistency}
+of the executed transactions.
+
+That is a single single logical action (Commit or Abort) is carried out by all
+the involved processes.
+\end{slide}
+
+\begin{slide}
+\settitle{The Two Phase Commit Protocol}
+\begin{itemize}
+\item It is the simplest most popular atomic commmit protocol.
+\item Described in the book ``Concurrency Control and Recovery in Database
+	Systems'' by Philip A. Berstein, Vassos Hadzilacos and Nathan Goodman.
+\end{itemize}
+\end{slide}
+
+\begin{slide}
+\settitle{What's an Atomic Commit Protocol?}
+Roughly speaking, an ACP is an algorith in which either all processes commit or
+they all abort.
+
+More preciselly it is a protocol that respects the following properties\dots
+
+\begin{overlay}
+\begin{description}
+\item[AC1] All processes that reach a decision reach the same one.
+\item[AC2] A process cannot reverse its decision after it has reached one.
+\item[AC3] The Commit decision can only be reached if \emph{all} processes voted
+	Yes.
+\item[AC4] If there are no failures and all processes voted Yes, then the
+	decision will be to Commit.
+\item[AC5] If all existing failures are repaired and no new failures occur for
+	sufficiently long, then all processes will eventually reach a decision.
+\end{description}
+\end{overlay}
+\end{slide}
+
+\begin{slide}
+\settitle{A Brief Description}
+There are two kind of processes, a \emph{coordinator} and the
+\emph{partecipants}.
+
+\begin{center}
+\begin{picture}(20,10)
+\put(4,9){Coordinator}       \put(12,9){Partecipants}
+\put(6,8.5){\vector(0,-1){7}}\put(14.5,8.5){\vector(0,-1){7}}
+\put(8.5,8){\texttt{vote\_req}}
+\put(6.5,7.5){\vector(1,0){7.5}}
+\put(8.5,6){\texttt{yes/no}}
+\put(14,5.5){\vector(-1,0){7.5}}
+\put(8.5,4){\texttt{commit/abort}}
+\put(6.5,3.5){\vector(1,0){7.5}}
+\end{picture}
+\end{center}
+\end{slide}
+
+\begin{slide}
+\begin{center}
+\LARGE Model Checking
+\end{center}
+\end{slide}
+
+\begin{slide}
+\settitle{The Promela Model}
+\begin{quote}
+\begin{verbatim}
+active [N] proctype partecipant() {
+    ...
+}
+active proctype coordinator() {
+    ...
+}
+ltl AC1 {
+    ...
+}
+...
+ltl AC5 {
+    ...
+}
+\end{verbatim}
+\end{quote}
+\end{slide}
+
+\begin{slide}
+\settitle{NuSMV Model}
+\begin{quote}
+\begin{verbatim}
+MODULE main
+  VAR
+    channel : {empty, vote_req, yes, no, commit, abort};
+    coordinator : process coordinator_process(channel);
+    partecipant : process partecipant_process(channel);
+    ...
+\end{verbatim}
+\end{quote}
+\end{slide}
+
+\begin{slide}
+\settitle{Experience Report}
+In Promela you have to program much more to expose the property that you care to
+check. But the way in which you can describe your model is much more powerfull.
+
+In NuSMV the way in which you can express you model is less
+powerfull\footnote{The \texttt{process} keyword is even gettting deprecated!}.
+But you have a better way to express your properties.
+\end{slide}
+
+\begin{slide}
+\settitle{What could have been done better?}
+The Cooperative Termination maybe could have been implemented with the help of
+some fairness constrains.
+\end{slide}
+
+\begin{slide}
+\settitle{In Conclusion}
+\centering Model checking is really cool.
+\end{slide}
+
+\end{document}

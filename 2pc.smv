@@ -13,7 +13,8 @@ MODULE main
 		init(channel) := empty;
 	-- Sanity checks
 	SPEC NAME termination :=
-		AF (coordinator.state = final & partecipant.state = final)
+		AF (coordinator.state in {decided_to_commit, decided_to_abort}
+			& partecipant.state in {decided_to_commit, decided_to_abort})
 	SPEC NAME can_commit :=
 		EF coordinator.state = decided_to_commit
 		& EF partecipant.state = decided_to_commit
@@ -24,16 +25,15 @@ MODULE main
 	SPEC NAME AC1 :=
 		AG (coordinator.state = decided_to_commit
 			-> AF partecipant.state = decided_to_commit)
-		-- This three are false for some reason...
-		-- &
-		-- AG (coordinator.state = decided_to_abort
-		-- 	-> AF partecipant.state = decided_to_abort)
-		-- &
-		-- AG (partecipant.state = decided_to_commit
-		-- 	-> AF coordinator.state = decided_to_commit)
-		-- &
-		-- AG (partecipant.state = decided_to_abort
-		-- 	-> AF coordinator.state = decided_to_abort)
+		&
+		AG (coordinator.state = decided_to_abort
+			-> AF partecipant.state = decided_to_abort)
+		&
+		AG (partecipant.state = decided_to_commit
+			-> AF coordinator.state = decided_to_commit)
+		&
+		AG (partecipant.state = decided_to_abort
+			-> AF coordinator.state = decided_to_abort)
 	SPEC NAME AC2 :=
 		(AG coordinator.state = decided_to_commit
 			-> AG coordinator.state != decided_to_abort)
@@ -60,7 +60,7 @@ MODULE main
 MODULE coordinator_process(chan)
 	VAR
 		state : {initial, waiting_for_votes, decided_to_commit,
-			decided_to_abort, final};
+			decided_to_abort};
 	ASSIGN
 		init(state) := initial;
 		next(state) :=
@@ -70,8 +70,6 @@ MODULE coordinator_process(chan)
 				state = waiting_for_votes & chan = empty : decided_to_abort;
 				state = waiting_for_votes & chan = yes   : decided_to_commit;
 				state = waiting_for_votes & chan = no    : decided_to_abort;
-				state = decided_to_commit                : final;
-				state = decided_to_abort                 : final;
 				TRUE : state;
 			esac;
 		next(chan) :=
@@ -87,7 +85,7 @@ MODULE coordinator_process(chan)
 MODULE partecipant_process(chan)
 	VAR
 		state : {initial, voted_yes, voted_no, decided_to_commit,
-			decided_to_abort, final};
+			decided_to_abort};
 	ASSIGN
 		init(state) := initial;
 		next(state) :=
@@ -96,8 +94,6 @@ MODULE partecipant_process(chan)
 				state = voted_yes & chan = commit : decided_to_commit;
 				state = voted_yes & chan = abort  : decided_to_abort;
 				state = voted_no                  : decided_to_abort;
-				state = decided_to_commit         : final;
-				state = decided_to_abort          : final;
 				TRUE : state;
 			esac;
 		next(chan) :=

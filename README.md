@@ -2,14 +2,15 @@ The modelled protocol is the two phase commit protocol described in
 ```
 @book {
     ccontrol,
-    title = "Concurrency Control and Recovery in Database Systems",
-    author = "Philip A. Berstein, Vassos Hadzilacos, Nathan Goodman",
+    title     = "Concurrency Control and Recovery in Database Systems",
+    author    = "Philip A. Berstein, Vassos Hadzilacos, Nathan Goodman",
     publisher = "Addison-Wesley",
-    editor = "Michael A. Harrison",
-    year = "1987",
-    month = "January",
-    pages = "232",
-    url = "https://www.microsoft.com/en-us/research/people/philbe/book/",
+    editor    = "Michael A. Harrison",
+    year      = "1987",
+    month     = "January",
+    chapter   = "7",
+    pages     = "232",
+    url       = "https://www.microsoft.com/en-us/research/people/philbe/book/",
 }
 ```
 
@@ -88,3 +89,28 @@ Conditions for beeing an Atomic Commit protocol
     designed to tolerate. At any point in this execution, if all existing
     failures are repaired and no new failures occur for sufficiently long, then
     all processes will eventually reach a decision.
+
+# Experience report
+In Promela you have to program much more to expose the properties that you want
+to verify because the specification language is less powerfull (i.e. only LTL
+possibly without the next operator). Instead in NuSMV the opposite is true, the
+input language is very weak but it has a great capacity in expressing
+specifications.
+
+Often you discover bugs either in the model or in the specifics (if they are too
+tight).
+
+A faulty channel could have been implemented by a module or a process which
+randomly <q>drops</q> some packets. So that the sender needs only to send the
+messages and not simulate the *not* sending of the message. Also a special
+message such as `lost` can be delivered.
+
+`assert` statement in Promela where really usefull to put sanity check in the
+code. Also `printf` fas really insightfull, NuSMV on the other hand has the
+possibility to run interactie simulations which allows you to guide the
+simulation exactly as you want/need.
+
+## What could have been done better
+After reading <q>Principles of Model Checking</q>, by Christel Baier and
+Joost-Pieter Katoen, I understood many more things, in particular I could have
+ruled out bad executions of the termination protocol via fairness constrains.

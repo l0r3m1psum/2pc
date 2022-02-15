@@ -123,6 +123,30 @@ ltl AC5 {
 }
 \end{verbatim}
 \end{quote}
+
+\begin{overlay}
+To be able to verify all the atomic commit properties we use the following
+global variables in the code:
+\begin{quote}
+\begin{verbatim}
+byte decidedToCommit;
+byte decidedToAbort;
+byte votedYes;
+byte votedNo;
+\end{verbatim}
+\end{quote}
+\end{overlay}
+
+\begin{overlay}
+Here it is shown how the AC1 property was formalized:
+\begin{displaymath}
+\mathop{\framebox(0.4,0.4){}}\nolimits\left(
+	\begin{array}{l}
+	(\mathtt{decidedToCommit} > 0 \rightarrow \mathtt{decidedToAbort} = 0)\\
+	\land (\mathtt{decidedToAbort} > 0 \rightarrow \mathtt{decidedToCommit} = 0)
+	\end{array}\right)
+\end{displaymath}
+\end{overlay}
 \end{slide}
 
 \begin{slide}
@@ -137,6 +161,41 @@ MODULE main
     ...
 \end{verbatim}
 \end{quote}
+
+\begin{overlay}
+Here instead to verify the properties we use a local varialbles of the  modules:
+\begin{quote}
+\begin{verbatim}
+partecipant_process.state : {
+    initial, voted_yes, voted_no, decided_to_commit,
+    decided_to_abort, final
+};
+coordinator_process.state : {
+    initial, waiting_for_votes, decided_to_commit,
+    decided_to_abort, final
+};
+\end{verbatim}
+\end{quote}
+\end{overlay}
+
+\begin{overlay}
+Here, instead, it is shown how the AC5 property was formalized:
+\begin{displaymath}
+\newcommand{\eventually}{\mathop{\diamond}\nolimits}
+\begin{array}{l}
+\forall\eventually \mathtt{coordinator.state} \in
+	\{\mathtt{decided\_to\_commit}, \mathtt{decided\_to\_abort}\}\\
+\land \forall\eventually \mathtt{partecipant.state} \in
+	\{\mathtt{decided\_to\_commit}, \mathtt{decided\_to\_abort}\}
+\end{array}
+\end{displaymath}
+\end{overlay}
+\end{slide}
+
+\begin{slide}
+\begin{center}
+\LARGE Demo Time
+\end{center}
 \end{slide}
 
 \begin{slide}
@@ -145,7 +204,7 @@ In Promela you have to program much more to expose the property that you care to
 check. But the way in which you can describe your model is much more powerfull.
 
 In NuSMV the way in which you can express you model is less
-powerfull\footnote{The \texttt{process} keyword is even gettting deprecated!}.
+powerfull\footnote{The \texttt{process} keyword is even getting deprecated!}.
 But you have a better way to express your properties.
 \end{slide}
 
